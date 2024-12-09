@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker network create --attachable -d bridge radiusdesk-bridge
+docker network create --attachable -d bridge "${RADIUSDESK_NETWORK}"
 
 source ./.env
 
