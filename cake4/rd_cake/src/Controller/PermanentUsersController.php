@@ -119,7 +119,46 @@ class PermanentUsersController extends AppController{
         $total  = $query->count();       
         $q_r    = $query->all();
         $items  = [];
-                
+
+        //Get more detail on the activity
+        $usernames = [0];
+        foreach ($q_r as $user) {
+            $usernames[] = $user->username;
+        }
+
+        $last_session_query = $this->{'Radaccts'}->find('all', [
+            'fields' => [
+                'username' => 'username',
+                'last_acctstarttime' => 'max(acctstarttime)',
+            ],
+            'group' => 'username'
+        ]);
+
+        $last_session_query = $this->{'Radaccts'}->find()
+            ->join([
+                'last_session' => [
+                    'table' => $last_session_query,
+                    'type' => 'inner',
+                    'conditions' => [
+                        'last_session.username = Radaccts.username', 
+                        'last_session.last_acctstarttime = Radaccts.acctstarttime'
+                    ]
+                ]
+            ])
+            ->where(['Radaccts.username IN' => $usernames])
+            ->select([
+                'username' => 'Radaccts.username', 
+                'acctstarttime' => 'acctstarttime',
+                'acctstoptime' => 'acctstoptime',
+                'framedipaddress' => 'framedipaddress'
+            ]);
+
+        $last_session_list = $last_session_query->toList();
+        $last_session_dict = array();
+        foreach ($last_session_list as $row) {
+            $last_session_dict[$row['username']] = $row;
+        }
+
         foreach($q_r as $i){
         
             $row            = [];
@@ -153,9 +192,8 @@ class PermanentUsersController extends AppController{
             unset($row["token"]);
             
             //Get more detail on the activity
-            //select acctstarttime,acctstoptime,framedipaddress from radacct where username='ord9555@superfibre' order by acctstarttime DESC LIMIT 1;          
-            $last_session = $this->{'Radaccts'}->find()->where(['username' => $i->username])->select(['acctstarttime','acctstoptime','framedipaddress'])->order('acctstarttime DESC')->first();
-            if($last_session){
+            if (array_key_exists($i->username, $last_session_dict)) {
+                $last_session = $last_session_dict[$i->username];
                 if(!$last_session->acctstoptime){
                     $row['last_seen']['status'] = 'online';
                     $row['last_seen']['span']   = $this->TimeCalculations->time_elapsed_string($last_session->acctstarttime,false,true);                
@@ -167,7 +205,7 @@ class PermanentUsersController extends AppController{
             }else{
                 $row['last_seen'] = ['status' => 'never'];
             }
-            
+
             $actions_enabled = true;                       
             if($right == 'view'){  
                 $actions_enabled = false;                  

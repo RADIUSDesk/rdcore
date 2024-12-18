@@ -4334,7 +4334,7 @@ CREATE TABLE `radacct` (
   `operator_name` varchar(32) NOT NULL DEFAULT '',
   PRIMARY KEY (`radacctid`),
   UNIQUE KEY `acctuniqueid` (`acctuniqueid`),
-  KEY `username` (`username`),
+  KEY `username_acctstarttime` (`username`, `acctstarttime`),
   KEY `framedipaddress` (`framedipaddress`),
   KEY `acctsessionid` (`acctsessionid`),
   KEY `acctsessiontime` (`acctsessiontime`),
