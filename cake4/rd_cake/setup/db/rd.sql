@@ -5615,7 +5615,8 @@ CREATE TABLE `user_stats` (
   KEY `us_realm_timestamp` (`realm`,`timestamp`),
   KEY `us_username_timestamp` (`username`,`timestamp`),
   KEY `us_nasidentifier_timestamp` (`nasidentifier`,`timestamp`),
-  KEY `us_callingstationid_timestamp` (`callingstationid`,`timestamp`)
+  KEY `us_callingstationid_timestamp` (`callingstationid`,`timestamp`),
+  KEY `us_radacct_id` (`radacct_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
