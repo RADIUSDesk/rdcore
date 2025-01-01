@@ -161,7 +161,7 @@ Ext.define('Rd.view.dataUsage.pnlDataUsage', {
                     '</tpl>',
                     '</i>  VIEWING   </span>',
                     '<tpl if="type==\'realm\'">',
-                        '<i class="fa fa-vector-square"></i> {item_name}',
+                        '<i class="fa fa-leaf"></i> {item_name}',
                     '</tpl>',
                     '<tpl if="type==\'user\'">',
                         '<i class="fa fa-user"></i> {item_name}',

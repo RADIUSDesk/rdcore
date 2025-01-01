@@ -1,13 +1,13 @@
-Ext.define('Rd.view.clouds.winCloudEdit', {
+Ext.define('Rd.view.clouds.winCloudRealmEdit', {
     extend      : 'Ext.window.Window',
-    alias       : 'widget.winCloudEdit',
+    alias       : 'widget.winCloudRealmEdit',
     closable    : true,
     draggable   : true,
     resizable   : true,
     border      : false,
     layout      : 'fit',
     autoShow    : false,
-    width       : 450,
+    width       : 550,
     height      : 350,
     glyph       : Rd.config.icnEdit,
     requires: [
@@ -43,24 +43,21 @@ Ext.define('Rd.view.clouds.winCloudEdit', {
                         hidden      : true
                     },
                     {
-                        xtype       : 'textfield',
-                        fieldLabel  : 'Name',
-                        name        : 'name',
-                        allowBlank  :false,
-                        blankText   : i18n('sEnter_a_value'),
-                        labelClsExtra: 'lblRdReq'
+                        xtype       : 'radiogroup',
+                        columns     : 3,
+                        fieldLabel  : 'Right',
+                        vertical    : true,
+                        items: [
+                            { boxLabel: 'Admin',    name: 'role', inputValue: 'admin', checked: true },
+                            { boxLabel: 'Operator', name: 'role', inputValue: 'operator'},
+                            { boxLabel: 'Viewer',   name: 'role', inputValue: 'viewer' }
+                        ]
                     },
                     {
-                        xtype       : 'textfield',
-                        grow        : true,
-                        name        : 'lat',
-                        fieldLabel  : 'Lat'
-                    },
-                    {
-                        xtype       : 'textfield',
-                        grow        : true,
-                        name        : 'lng',
-                        fieldLabel  : 'Lng'
+                        xtype       : 'tagAccessProviders',
+                        fieldLabel  : 'Admin',
+                        name        : 'admin[]',
+                        itemId      : 'tagAdmin'
                     }
                    ],
                 buttons: [

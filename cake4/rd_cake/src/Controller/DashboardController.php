@@ -699,7 +699,7 @@ class DashboardController extends AppController{
                     ],
                     [
                         "title" => "Realms (Groups)",
-                        "glyph" => "xf17d@FontAwesome",
+                        "glyph" => "xf06c@FontAwesome",
                         "id"    => "cRealms",
                         "layout"=> "fit",
                         "tabConfig"=> [

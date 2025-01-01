@@ -143,7 +143,7 @@ Ext.define('Rd.view.dataUsage.pnlDataUsageClients', {
                     '</tpl>',
                     '</i>  VIEWING   </span>',
                     '<tpl if="type==\'realm\'">',
-                        '<i class="fa fa-vector-square"></i> {item_name}',
+                        '<i class="fa fa-leaf"></i> {item_name}',
                     '</tpl>',
                     '<tpl if="type==\'nas_id\'">',
                         '<i class="fa fa-wifi"></i> {item_name}',

@@ -69,7 +69,7 @@ Ext.define('Rd.view.clouds.pnlCloudDetail', {
                     blankText   : i18n('sEnter_a_value'),
                     labelClsExtra: 'lblRdReq'
                 },
-                {
+               /* {
                     xtype       : 'tagAccessProviders',
                     fieldLabel  : 'Admin Rights',
                     name        : 'admin_rights[]',
@@ -80,18 +80,20 @@ Ext.define('Rd.view.clouds.pnlCloudDetail', {
                     fieldLabel  : 'View Rights',
                     name        : 'view_rights[]',
                     itemId      : 'tagViewRights'
-                },
+                },*/
                 {
                     xtype       : 'textfield',
                     grow        : true,
                     name        : 'lat',
-                    fieldLabel  : 'Lat'
+                    fieldLabel  : 'Lat',
+                    labelClsExtra: 'lblRd'
                 },
                 {
                     xtype       : 'textfield',
                     grow        : true,
                     name        : 'lng',
-                    fieldLabel  : 'Lng'
+                    fieldLabel  : 'Lng',
+                    labelClsExtra: 'lblRd'
                 }
             ]
         }

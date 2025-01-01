@@ -22,6 +22,7 @@ Ext.define('Rd.controller.cClouds', {
                     {
                         title   : 'Clouds',
                         xtype   : 'treeClouds',
+                        xtype   : 'pnlClouds',
                         border  : false,
                         plain   : true,
                         padding : Rd.config.gridSlim,
@@ -38,6 +39,7 @@ Ext.define('Rd.controller.cClouds', {
         return added;
     }, 
     views:  [
+        'clouds.pnlClouds',
         'clouds.treeClouds',         
         'clouds.winCloudEdit',
         'clouds.winCloudAdd',
@@ -130,12 +132,27 @@ Ext.define('Rd.controller.cClouds', {
             }else{
                 var id = me.selectedRecord.getId();
                 if(!Ext.WindowManager.get('winCloudAddId')){
-                    var parent_id = me.selectedRecord.getId();
-                    var name      = me.selectedRecord.get('name'); 
-                    console.log(parent_id);
-                    console.log(name);                                      
-                    var w = Ext.widget('winCloudAdd',{id:'winCloudAddId','parentId': parent_id,'parentDisplay': name});
-                    w.show();         
+                    var parent_id   = me.selectedRecord.getId();
+                    var name        = me.selectedRecord.get('name'); 
+                    var level       = me.selectedRecord.get('tree_level'); 
+                    var title       = 'Add Cloud';
+                    if(level == 'Clouds'){
+                        title = 'Add Site';
+                    }
+                    if(level == 'Sites'){
+                        title = 'Add Network';
+                    } 
+                    if(level == 'Networks'){
+                        Ext.ux.Toaster.msg(
+                            'Only 3 levels Deep',
+                            'The Grouping can only be three levels deep',
+                            Ext.ux.Constants.clsWarn,
+                            Ext.ux.Constants.msgWarn
+                        );
+                    }else{                                                    
+                        var w = Ext.widget('winCloudAdd',{id:'winCloudAddId','parentId': parent_id,'parentDisplay': name, title:  title});
+                        w.show();         
+                    }
                 }
             }
         }       
@@ -187,7 +204,8 @@ Ext.define('Rd.controller.cClouds', {
                 var tp          = me.getTreeClouds().up('tabpanel');
                 var sr          = me.selectedRecord;
                 var parent_id   = me.selectedRecord.get('parent_id');
-                var id          = sr.getId();
+                var level       = me.selectedRecord.get('tree_level'); 
+                var id          = sr.getId();              
                 
                 if(parent_id == 'root'){
                
@@ -212,8 +230,15 @@ Ext.define('Rd.controller.cClouds', {
 
                 }else{             
                     if(!Ext.WindowManager.get('winCloudEditId')){
+                         if(level == 'Sites'){
+                            title = 'Edit Site';
+                        } 
+                        if(level == 'Networks'){
+                            title = 'Edit Network';
+                        }
+                                        
                         var parent_id = me.selectedRecord.get('parent_id');
-                        var w = Ext.widget('winCloudEdit',{id:'winCloudEditId'});
+                        var w = Ext.widget('winCloudEdit',{id:'winCloudEditId', title: title});
                         w.show();  
                         w.down('form').loadRecord(me.selectedRecord);
                         //Set the parent ID

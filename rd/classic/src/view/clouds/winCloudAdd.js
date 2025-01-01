@@ -5,11 +5,10 @@ Ext.define('Rd.view.clouds.winCloudAdd', {
     draggable   : true,
     resizable   : true,
     border      : false,
-    title       : 'Add Cloud',
     layout      : 'fit',
     autoShow    : false,
     width       : 450,
-    height      : 350,
+    height      : 380,
     glyph       : Rd.config.icnAdd,
     parentId    : undefined,
     parentDisplay: undefined,
@@ -18,16 +17,18 @@ Ext.define('Rd.view.clouds.winCloudAdd', {
         var me  = this;
         me.items = [
             {
-                xtype: 'form',
-                fieldDefaults: {
-                    msgTarget: 'under',
-                    labelClsExtra: 'lblRd',
-                    labelAlign: 'left',
-                    labelSeparator: '',
-                    margin: 15
+                xtype           : 'form',
+                fieldDefaults   : {
+                    msgTarget       : 'under',
+                    labelClsExtra   : 'lblRd',
+                    labelAlign      : 'left',
+                    labelSeparator  : '',
+                    labelClsExtra   : 'lblRd',
+                    margin          : 15,
+                    labelWidth		: 130
                 },
                 defaults: {
-                    anchor: '100%'
+                    anchor      : '100%'
                 },
                 items: [
                     {
