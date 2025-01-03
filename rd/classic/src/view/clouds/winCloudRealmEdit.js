@@ -9,15 +9,29 @@ Ext.define('Rd.view.clouds.winCloudRealmEdit', {
     autoShow    : false,
     width       : 550,
     height      : 350,
-    glyph       : Rd.config.icnEdit,
     requires: [
-        'Rd.view.clouds.tagAccessProviders'
+        'Rd.view.clouds.tagAccessProviders',
+        'Rd.view.clouds.vcCloudRealmEdit'
     ],
+    controller  : 'vcCloudRealmEdit',
     initComponent: function() {
         var me = this;
-        this.items = [
+        
+        var level = me.record.get('tree_level');
+        var name  = me.record.get('name');
+        if(level == 'Clouds'){
+            me.glyph = Rd.config.icnCloud;
+            me.title = 'Cloud level : ' + name;
+        }
+        if(level == 'Realms'){
+            me.glyph = Rd.config.icnRealm;
+            me.title = 'Realm level : ' + name;
+        }
+        	     
+        me.items = [
             {
-                xtype   : 'form',
+                xtype           : 'form',
+                
                 fieldDefaults   : {
                     msgTarget       : 'under',
                     labelClsExtra   : 'lblRd',
@@ -32,30 +46,37 @@ Ext.define('Rd.view.clouds.winCloudRealmEdit', {
                 },
                 defaultType: 'textfield',
                 items: [
-                     {
-                        xtype:  'hiddenfield',
-                        name:   'parent_id',
-                        hidden: true
-                    },
                     {
-                        xtype       :  'hiddenfield',
-                        name        :   'id',
+                        xtype       : 'hiddenfield',
+                        name        : 'id',
                         hidden      : true
                     },
                     {
                         xtype       : 'radiogroup',
-                        columns     : 3,
                         fieldLabel  : 'Right',
-                        vertical    : true,
+                        labelClsExtra: 'lblRd',
+                        layout: {
+				            type	: 'hbox',
+				            align	: 'middle',
+				            pack	: 'stretchmax',
+				            padding	: 0,
+				            margin	: 0
+			            },
+                        defaultType: 'button',
+        				defaults: {
+				            enableToggle: true,
+				            toggleGroup: 'type',
+				            allowDepress: false,					
+			            },             
                         items: [
-                            { boxLabel: 'Admin',    name: 'role', inputValue: 'admin', checked: true },
-                            { boxLabel: 'Operator', name: 'role', inputValue: 'operator'},
-                            { boxLabel: 'Viewer',   name: 'role', inputValue: 'viewer' }
-                        ]
+				            { text: 'Admin',    itemId: 'btnAdmin',     glyph: Rd.config.icnKey,    flex:1, ui : 'default-toolbar', 'margin' : '0 5 0 0', pressed: true },
+				            { text: 'Operator', itemId: 'btnOperator',  glyph: Rd.config.icnWrench, flex:1, ui : 'default-toolbar', 'margin' : '0 5 0 5' },
+				            { text: 'Viewer', 	itemId: 'btnViewer',    glyph: Rd.config.icnEye,    flex:1, ui : 'default-toolbar', 'margin' : '0 0 0 5' }
+			            ]
                     },
                     {
                         xtype       : 'tagAccessProviders',
-                        fieldLabel  : 'Admin',
+                        fieldLabel  : 'Admins',
                         name        : 'admin[]',
                         itemId      : 'tagAdmin'
                     }
@@ -72,6 +93,6 @@ Ext.define('Rd.view.clouds.winCloudRealmEdit', {
                 ]
             }
         ];
-        this.callParent(arguments);
+        me.callParent(arguments);
     }
 });

@@ -17,6 +17,9 @@ Ext.define('Rd.view.clouds.vcClouds', {
         },
         'treeCloudRealms #edit': {
             click   : 'edit'
+        },
+        'treeCloudRealms'   : {
+                select:  'treeItemSelect'
         }
     },
     onPnlActivate: function(pnl){
@@ -57,52 +60,28 @@ Ext.define('Rd.view.clouds.vcClouds', {
                         Ext.ux.Constants.msgWarn
                 );
             }else{
-                console.log("Gooi Hom");
-                var w = Ext.widget('winCloudRealmEdit',{id:'winCloudRealmEditId'});
-                w.show();         
             
-/*
-
-                //Check if the node is not already open; else open the node:
-                var tp          = me.getTreeClouds().up('tabpanel');
-                var sr          = me.selectedRecord;
-                var parent_id   = me.selectedRecord.get('parent_id');
-                var id          = sr.getId();
-                
-                if(parent_id == 'root'){
-               
-                    var tab_id      = 'cloudTab_'+id;
-                    var nt          = tp.down('#'+tab_id);
-                    if(nt){
-                        tp.setActiveTab(tab_id); //Set focus on  Tab
-                        return;
-                    }
-
-                    var tab_name    = me.selectedRecord.get('name');
-                    //Tab not there - add one
-                    tp.add({ 
-                        title       : 'Cloud '+tab_name,
-                        itemId      : tab_id,
-                        closable    : true,
-                        glyph       : Rd.config.icnEdit, 
-                        xtype       : 'pnlCloudEdit',
-                        cloud_id    : id
-                    });
-                    tp.setActiveTab(tab_id); //Set focus on Add Tab
-
-                }else{             
-                    if(!Ext.WindowManager.get('winCloudEditId')){
-                        var parent_id = me.selectedRecord.get('parent_id');
-                        var w = Ext.widget('winCloudEdit',{id:'winCloudEditId'});
-                        w.show();  
-                        w.down('form').loadRecord(me.selectedRecord);
-                        //Set the parent ID
-                        w.down('hiddenfield[name="parent_id"]').setValue(me.selectedRecord.parentNode.getId());
-                    }
-                }
-*/ 
-               
+                var sr  = me.selectedRecord;
+                var id  = sr.getId();
+                var s   = me.getView().down('treeCloudRealms').getStore();
+                var w   = Ext.widget('winCloudRealmEdit',{id:'winCloudRealmEditId',record:sr,store:s});
+                w.show();             
             }
         }
     },
+    treeItemSelect:  function(grid,record){
+        var me = this;
+        me.selectedRecord = record;
+        var tb =  me.getView().down('treeCloudRealms').down('toolbar[dock=top]');
+        var edit = record.get('update');
+        if(edit == true){
+            if(tb.down('#edit') != null){
+                tb.down('#edit').setDisabled(false);
+            }
+        }else{
+            if(tb.down('#edit') != null){
+                tb.down('#edit').setDisabled(true);
+            }
+        }
+    }
 });

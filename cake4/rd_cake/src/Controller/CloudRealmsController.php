@@ -89,10 +89,11 @@ class CloudRealmsController extends AppController {
                 $i->parent_id =	"root";
                 $i->text      = $i->name;
                 $i->iconCls   = "x-fa fa-cloud txtM3";
-                $i->tree_level= "Clouds";
+                $i->tree_level= 'Clouds';
                 $i->cloud_id  =	$i->id;
                 $i->id        = 'Clouds_'.$i->id; 
-                $i->leaf	  = $leaf; 
+                $i->leaf	  = $leaf;
+                $i->update    = true;
                 $i->admin_rights = [
                     [ 'username' => 'Koos'      ],
                     [ 'username' => 'Bertie'    ],
@@ -113,6 +114,8 @@ class CloudRealmsController extends AppController {
 		        $realm->text        = $realm->name;
 		        $realm->iconCls     = "x-fa fa-leaf txtM3";
 		        $realm->leaf        = true;
+		        $realm->tree_level  = 'Realms';
+		        $realm->update      = true;
 		        $realm->admin_rights = [
                     [ 'username' => 'Koos'      ],
                     [ 'username' => 'Bertie'    ],
@@ -128,6 +131,22 @@ class CloudRealmsController extends AppController {
             'success' => true
         ]);
         $this->viewBuilder()->setOption('serialize', true);
+    }
+    
+    public function view(){
+    
+        $items = [];
+        $items['admin'] = [
+            55
+        ];
+    
+        $this->set([
+            'data'  => $items,
+            'success' => true
+        ]);
+        $this->viewBuilder()->setOption('serialize', true);
+    
+    
     }  
     
 }
