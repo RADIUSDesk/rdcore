@@ -108,7 +108,7 @@ class AccessProvidersController extends AppController{
 		$e_group    = $this->{'Groups'}->find()->where(['Groups.name' => $ap_name])->first();
 		if($e_group){
 			$group_id 	= $e_group->id;
-			$q_r 		= $this->{'Users'}->find()->where(['Users.group_id' => $group_id])->all();
+			$q_r 		= $this->{'Users'}->find()->where(['Users.group_id' => $group_id])->order(['Users.username' => 'ASC'])->all();
 			foreach($q_r as $e){
 			
 				if($e->id !== $user_id){

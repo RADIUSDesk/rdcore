@@ -3,7 +3,7 @@ Ext.define('Rd.view.clouds.vcCloudRealmEdit', {
     alias   : 'controller.vcCloudRealmEdit',
     config: {
         urlView  : '/cake4/rd_cake/cloud-realms/view.json',
-        urlSave  : '/cake4/rd_cake/cloud-realms/save.json'
+        urlSave  : '/cake4/rd_cake/cloud-realms/edit.json'
     }, 
     control: {
         'winCloudRealmEdit' : {
@@ -17,7 +17,10 @@ Ext.define('Rd.view.clouds.vcCloudRealmEdit', {
         },
         '#btnViewer'    : {
             click   : 'btnViewerClick'
-        }
+        },
+        '#save': {
+            click   : 'btnSave'
+        },
     },
     btnAdminClick : function(){
         var me = this;
@@ -46,16 +49,37 @@ Ext.define('Rd.view.clouds.vcCloudRealmEdit', {
         }
         var form    = me.getView().down('form'); 
         var id      = me.getView().record.get('id');
+        var level   = me.getView().record.get('tree_level');
         form.setLoading();               
         form.load({
             url         : me.getUrlView(), 
             method      : 'GET',
-            params      : { id: id, role: role },
+            params      : { id: id, role: role, level : level },
             success : function(a,b){  
 		        form.setLoading(false);
                 var a  = me.getView().down('#tagAdmin');
                 a.setValue(b.result.data.admin);
             }
         });            
-    }
+    },
+    btnSave:function(button){
+        var me      = this;
+        var form    = me.getView().down('form');
+    
+        form.submit({
+            clientValidation    : true,
+            url                 : me.getUrlSave(),
+            success             : function(form, action) {
+                me.getView().store.reload();                           
+                Ext.ux.Toaster.msg(
+                    i18n('sItems_modified'),
+                    i18n('sItems_modified_fine'),
+                    Ext.ux.Constants.clsInfo,
+                    Ext.ux.Constants.msgInfo
+                );
+                me.getView().close();
+            },
+            failure             : Ext.ux.formFail
+        });
+    }  
 });

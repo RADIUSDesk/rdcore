@@ -31,7 +31,7 @@ Ext.define('Rd.view.clouds.treeCloudRealms' ,{
             xtype   :  'templatecolumn', 
             tpl:    new Ext.XTemplate(
                         '<tpl for="admin_rights">',
-                            "<div style=\"text-align: left;font-size:16px;\" class=\"fieldTealWhite\"><i class=\"fa fa-cloud\"></i>  {username}</div>",
+                            "<div style=\"text-align: left;font-size:16px;\"><i class=\"fa fa-cloud\"></i>  {username}</div>",
                         '</tpl>'
                     ),
             dataIndex: 'admin_rights',
@@ -44,7 +44,7 @@ Ext.define('Rd.view.clouds.treeCloudRealms' ,{
             xtype   :  'templatecolumn', 
             tpl:    new Ext.XTemplate(
                         '<tpl for="operator_rights">',
-                            "<div class=\"fieldGrey\">{username}</div>",
+                            "<div style=\"text-align: left;font-size:16px;\"><i class=\"fa fa-cloud\"></i>  {username}</div>",
                         '</tpl>'
                     ),
             dataIndex: 'operator_rights',
@@ -56,11 +56,11 @@ Ext.define('Rd.view.clouds.treeCloudRealms' ,{
             tdCls   : 'gridTree',
             xtype   :  'templatecolumn', 
             tpl:    new Ext.XTemplate(
-                        '<tpl for="view_rights">',
-                            "<div class=\"fieldGrey\">{username}</div>",
+                        '<tpl for="viewer_rights">',
+                            "<div style=\"text-align: left;font-size:16px;\"><i class=\"fa fa-cloud\"></i>  {username}</div>",
                         '</tpl>'
                     ),
-            dataIndex: 'view_rights',
+            dataIndex: 'viewer_rights',
             flex        : 1
         }
     ],

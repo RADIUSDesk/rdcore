@@ -18,7 +18,8 @@ class RealmsTable extends Table
         $this->hasMany('Devices',['dependent' => true]);
         
         $this->hasMany('RealmVlans',['dependent' => true]);
-        $this->hasMany('RealmPmks',['dependent' => true]);
+        $this->hasMany('RealmPmks',['dependent' => true]);        
+        $this->hasMany('RealmAdmins',['dependent' => true]);
         
     }
     

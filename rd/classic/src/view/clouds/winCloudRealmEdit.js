@@ -52,6 +52,16 @@ Ext.define('Rd.view.clouds.winCloudRealmEdit', {
                         hidden      : true
                     },
                     {
+                        xtype       : 'hiddenfield',
+                        name        : 'role',
+                        hidden      : true
+                    },
+                    {
+                        xtype       : 'hiddenfield',
+                        name        : 'level',
+                        hidden      : true
+                    },
+                    {
                         xtype       : 'radiogroup',
                         fieldLabel  : 'Right',
                         labelClsExtra: 'lblRd',
@@ -69,9 +79,9 @@ Ext.define('Rd.view.clouds.winCloudRealmEdit', {
 				            allowDepress: false,					
 			            },             
                         items: [
-				            { text: 'Admin',    itemId: 'btnAdmin',     glyph: Rd.config.icnKey,    flex:1, ui : 'default-toolbar', 'margin' : '0 5 0 0', pressed: true },
-				            { text: 'Operator', itemId: 'btnOperator',  glyph: Rd.config.icnWrench, flex:1, ui : 'default-toolbar', 'margin' : '0 5 0 5' },
-				            { text: 'Viewer', 	itemId: 'btnViewer',    glyph: Rd.config.icnEye,    flex:1, ui : 'default-toolbar', 'margin' : '0 0 0 5' }
+				            { text: 'Admin',    itemId: 'btnAdmin',     glyph: Rd.config.icnKey,        flex:1, ui : 'default-toolbar', 'margin' : '0 5 0 0', pressed: true },
+				            { text: 'Operator', itemId: 'btnOperator',  glyph: Rd.config.icnConfigure,  flex:1, ui : 'default-toolbar', 'margin' : '0 5 0 5' },
+				            { text: 'Viewer', 	itemId: 'btnViewer',    glyph: Rd.config.icnEye,        flex:1, ui : 'default-toolbar', 'margin' : '0 0 0 5' }
 			            ]
                     },
                     {

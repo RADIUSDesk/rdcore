@@ -205,5 +205,6 @@ Rd.config = {
     'icnPauseO'     : 'xf28c@FontAwesome',
     'icnPlayO'      : 'xf01d@FontAwesome',
     'icnSliders'    : 'xf1de@FontAwesome',
+    'icnEye'        : 'xf06e@FontAwesome'
 }
 

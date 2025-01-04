@@ -862,7 +862,7 @@ class CloudsController extends AppController {
             $query->where($conditions);
         }
          
-        $q_r    = $query->all();
+        $q_r    = $query->order([$l_model.'.name' => 'ASC'])->all();
         $total  = $query->count();
         
         if($tt_level ==0){

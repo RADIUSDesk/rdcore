@@ -9,6 +9,19 @@ if not exists (select * from information_schema.columns
     alter table cloud_admins add column `permissions` enum('admin','view','granular') DEFAULT 'admin';
 end if;
 
+if not exists (select * from information_schema.columns
+    where table_name = 'realm_admins' and table_schema = 'rd') then
+        CREATE TABLE `realm_admins` (
+          `id` int(11) NOT NULL AUTO_INCREMENT,
+          `realm_id` int(11) DEFAULT NULL,
+          `user_id` int(11) DEFAULT NULL,
+          `created` datetime NOT NULL,
+          `modified` datetime NOT NULL,
+          `permissions` enum('admin','view','granular') DEFAULT 'admin',
+          PRIMARY KEY (`id`)
+        );
+end if;
+
 
 end//
 
