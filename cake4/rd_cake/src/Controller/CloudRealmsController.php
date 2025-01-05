@@ -103,13 +103,13 @@ class CloudRealmsController extends AppController {
                     $username = $cloudAdmin->user->username;
                                        
                     if($cloudAdmin->permissions == 'admin'){
-                        array_push($admin_rights, ['username' => $username]);
+                        array_push($admin_rights, ['username' => $username, 'cloud_wide' => $cloudAdmin->cloud_wide]);
                     }
                     if($cloudAdmin->permissions == 'granular'){                       
-                        array_push($operator_rights, ['username' => $username]);
+                        array_push($operator_rights, ['username' => $username, 'cloud_wide' => $cloudAdmin->cloud_wide]);
                     }
                     if($cloudAdmin->permissions == 'view'){                       
-                        array_push($viewer_rights, ['username' => $username]);
+                        array_push($viewer_rights, ['username' => $username, 'cloud_wide' => $cloudAdmin->cloud_wide]);
                     }               
                 }                               
                 $i->admin_rights    = $admin_rights;
@@ -191,10 +191,12 @@ class CloudRealmsController extends AppController {
 		}
 		$reply_id   = $id;	
 		$admins     = [];
+		$cloud_id   = 0;
 		
 		if($level == 'Clouds'){	
-		    $reply_id       = 'Clouds_'.$reply_id;	    
-		    $cloudAdmins    = $this->{'CloudAdmins'}->find()->where(['cloud_id' => $id, 'permissions' => $permissions])->all();
+		    $reply_id       = 'Clouds_'.$reply_id;
+		    $cloud_id       = $reply_id;    
+		    $cloudAdmins    = $this->{'CloudAdmins'}->find()->where(['cloud_id' => $id, 'permissions' => $permissions,'cloud_wide' => 1])->all();
 		    foreach($cloudAdmins as $cloudAdmin){
 		        array_push($admins,$cloudAdmin->user_id);		    
 		    }
@@ -202,6 +204,11 @@ class CloudRealmsController extends AppController {
 		
 		if($level == 'Realms'){	
 		    $realmAdmins    = $this->{'RealmAdmins'}->find()->where(['realm_id' => $id, 'permissions' => $permissions])->all();
+		    $realm          = $this->{'Realms'}->find()->where(['Realms.id' => $id])->first();
+		    $reply_id       = intval($reply_id);
+		    if($realm){
+		        $cloud_id = $realm->cloud_id;
+		    }
 		    foreach($realmAdmins as $realmAdmin){
 		        array_push($admins,$realmAdmin->user_id);		    
 		    }
@@ -211,6 +218,7 @@ class CloudRealmsController extends AppController {
             'id'    => $reply_id,
             'role'  => $role,
             'level' => $level,
+            'c_id'  => $cloud_id,
             'admin' => $admins
         ];
            
@@ -247,7 +255,7 @@ class CloudRealmsController extends AppController {
 		}
 		
 		if($level == 'Clouds'){		
-		    $this->{'CloudAdmins'}->deleteAll(['CloudAdmins.cloud_id' => $id, 'permissions' => $permissions]);
+		    $this->{'CloudAdmins'}->deleteAll(['CloudAdmins.cloud_id' => $id, 'permissions' => $permissions,'cloud_wide' => 1]);
 		    if (array_key_exists('admin', $requestData)) {
                 if(!empty($requestData['admin'])){
                     foreach($requestData['admin'] as $e){
@@ -255,10 +263,12 @@ class CloudRealmsController extends AppController {
                             $e_ca = $this->{'CloudAdmins'}->newEntity(['cloud_id' => $id,'user_id' => $e,'permissions' => $permissions]);
             				$this->{'CloudAdmins'}->save($e_ca);
             				$this->_cloudLevelCleanup($id,$e,$permissions);
+            				$this->_removeRealmAdminsForCloud($id,$e); //If it was an 'upgrade'
                         }    
                     }
                 }
-            }		    
+            }
+            		    
 		}
 		
 		if($level == 'Realms'){		
@@ -273,7 +283,8 @@ class CloudRealmsController extends AppController {
                         }    
                     }
                 }
-            }		    
+            }
+            $this->_doCloudWideFlag($requestData);		    
 		}
         
         $this->set([
@@ -283,6 +294,62 @@ class CloudRealmsController extends AppController {
           
     }
     
+    private function _doCloudWideFlag($requestData){    
+        $cloud_id = $requestData['c_id'];
+        $realms = $this->{'Realms'}->find()->where(['Realms.cloud_id' => $cloud_id])->all();    
+        foreach($realms as $realm){        
+            $realmAdmins = $this->{'RealmAdmins'}->find()->where(['realm_id' => $realm->id]);
+            foreach($realmAdmins as $realmAdmin){         
+                $this->_clearOrCreateCloudWide($cloud_id,$realmAdmin->user_id,$realmAdmin->permissions);
+            }
+        }        
+        $this->_removeUnusedCloudAdmin($requestData);         
+    }
+    
+    private function _clearOrCreateCloudWide($cloud_id,$user_id,$permissions){   
+        $cloudAdmin = $this->{'CloudAdmins'}->find()->where(['cloud_id' => $cloud_id, 'user_id' => $user_id])->first();
+        if($cloudAdmin){
+            $this->{'CloudAdmins'}->patchEntity($cloudAdmin, ['cloud_wide' => 0,'permissions' => $permissions]);
+            $this->{'CloudAdmins'}->save($cloudAdmin);
+        }else{
+            $newCloudAdmin = $this->{'CloudAdmins'}->newEntity(['cloud_id' => $cloud_id, 'user_id' => $user_id,'cloud_wide' => 0,'permissions' => $permissions]);
+            $this->{'CloudAdmins'}->save($newCloudAdmin);       
+        }    
+    }
+    
+    private function _removeUnusedCloudAdmin($requestData){
+        $cloud_id = $requestData['c_id'];
+        $cloudAdmins = $this->{'CloudAdmins'}->find()->where(['cloud_id' => $cloud_id, 'cloud_wide' => 0])->all();
+        
+        foreach($cloudAdmins as $cloudAdmin){
+            if(!$this->_hasRealmAdmins($cloudAdmin->cloud_id, $cloudAdmin->user_id)){
+                $this->{'CloudAdmins'}->deleteAll(['CloudAdmins.cloud_id' => $cloudAdmin->cloud_id, 'user_id' => $cloudAdmin->user_id]);            
+            }
+        }   
+    }
+    
+    private function _removeRealmAdminsForCloud($cloud_id,$user_id){
+        $this->{'CloudAdmins'}->deleteAll(['CloudAdmins.cloud_id' => $cloud_id, 'user_id' => $user_id,'cloud_wide' => 0]); 
+        $realms = $this->{'Realms'}->find()->where(['Realms.cloud_id' => $cloud_id])->all();
+        foreach($realms as $realm){
+            $this->{'RealmAdmins'}->deleteAll(['realm_id' => $realm->id, 'user_id' => $user_id]);
+        }    
+    }
+    
+    private function _hasRealmAdmins($cloud_id,$user_id){
+    
+        $realms = $this->{'Realms'}->find()->where(['Realms.cloud_id' => $cloud_id])->all();
+        $user_entries = 0;
+        foreach($realms as $realm){
+            $count = $this->{'RealmAdmins'}->find()->where(['realm_id' => $realm->id,'user_id' => $user_id])->count();
+            $user_entries = $user_entries + $count;
+        }
+        if($user_entries > 0){
+            return true;
+        }   
+        return false;
+    }
+           
     private function _cloudLevelCleanup($cloud_id, $user_id, $permissions){
 
         // Define permissions to delete for each level

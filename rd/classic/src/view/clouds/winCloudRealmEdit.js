@@ -61,6 +61,11 @@ Ext.define('Rd.view.clouds.winCloudRealmEdit', {
                         name        : 'level',
                         hidden      : true
                     },
+                     {
+                        xtype       : 'hiddenfield',
+                        name        : 'c_id',
+                        hidden      : true
+                    },
                     {
                         xtype       : 'radiogroup',
                         fieldLabel  : 'Right',

@@ -10,6 +10,11 @@ if not exists (select * from information_schema.columns
 end if;
 
 if not exists (select * from information_schema.columns
+    where column_name = 'cloud_wide' and table_name = 'cloud_admins' and table_schema = 'rd') then
+    alter table cloud_admins add column `cloud_wide` tinyint(1) NOT NULL DEFAULT '1';
+end if;
+
+if not exists (select * from information_schema.columns
     where table_name = 'realm_admins' and table_schema = 'rd') then
         CREATE TABLE `realm_admins` (
           `id` int(11) NOT NULL AUTO_INCREMENT,
