@@ -231,6 +231,14 @@ BEGIN
             updated_acctoutputoctets
         );
     END IF;
+
+     -- Check if acctstoptime has changed from NULL to NOT NULL
+    IF OLD.acctstoptime IS NULL AND NEW.acctstoptime IS NOT NULL THEN
+        -- Insert the updated row into radacct_history
+        INSERT INTO radacct_history 
+        SELECT * FROM radacct WHERE radacctid = NEW.radacctid;
+    END IF;
+
 END //
 
 

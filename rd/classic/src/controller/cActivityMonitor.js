@@ -128,7 +128,7 @@ Ext.define('Rd.controller.cActivityMonitor', {
         var tz      = me.getGrid().down('#cmbTimezone');
         var info    = me.getGrid().down('#btnInfo'); 
          
-        var only_connected  = false;
+        var only_connected  = true; //We only show the connected ones by default
         var extra_info  = false;
         if(btn){
             only_connected = btn.pressed; //Default only active

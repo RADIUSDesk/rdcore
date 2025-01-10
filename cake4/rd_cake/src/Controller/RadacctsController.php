@@ -9,18 +9,19 @@ use Cake\ORM\Query;
 class RadacctsController extends AppController {
 
     protected $main_model 	= 'Radaccts';
-    public $base    		= "Access Providers/Controllers/Radaccts/"; 
+    protected $workingModel = 'Radaccts'; //Can be Radaccts or RadacctHistories
+    
     protected $time_zone    = 'UTC'; //Default for timezone 
-    protected  $fields  	= [
-        'total_in' => 'sum(Radaccts.acctinputoctets)',
-        'total_out' => 'sum(Radaccts.acctoutputoctets)',
-        'total' => 'sum(Radaccts.acctoutputoctets) + sum(Radaccts.acctinputoctets)',
+    protected $fields  	    = [
+        'total_in' => 'sum(acctinputoctets)',
+        'total_out' => 'sum(acctoutputoctets)',
+        'total' => 'sum(acctoutputoctets) + sum(acctinputoctets)',
     ];
-
-    public function initialize():void
-    {
+    
+    public function initialize():void{
         parent::initialize();
         $this->loadModel($this->main_model);
+        $this->loadModel('RadacctHistories');
         $this->loadModel('Users');
         $this->loadModel('PermanentUsers');
         $this->loadModel('Timezones');
@@ -173,7 +174,7 @@ class RadacctsController extends AppController {
         //Build query
         $user_id    = $user['id'];
 
-        $query = $this->{$this->main_model}->find();
+        $query = $this->{$this->workingModel}->find();
 
         $this->_build_common_query($query, $user);
 
@@ -294,7 +295,7 @@ class RadacctsController extends AppController {
 		 	$q_realms  = $this->{'Realms'}->find()->where(['Realms.cloud_id' => $this->request->getQuery('cloud_id')])->all();
 		  	foreach($q_realms as $r){
 		  		$found_realm = true;
-		      	array_push($realm_clause, [$this->main_model.'.realm' => $r->name]);
+		      	array_push($realm_clause, [$this->workingModel.'.realm' => $r->name]);
 		 	}
 		 	if($found_realm){
 		 		array_push($conditions, ['OR' => $realm_clause]);
@@ -309,7 +310,7 @@ class RadacctsController extends AppController {
     		$this->loadModel('Realms');
     		$e_realm = $this->{'Realms'}->find()->where(['Realms.id' => $this->request->getQuery('username')])->first();
     		if($e_realm){
-    			array_push($conditions,["Radaccts.realm" => $e_realm->name]);
+    			array_push($conditions,["realm" => $e_realm->name]);
     		} 	
     	}
     	
@@ -317,22 +318,22 @@ class RadacctsController extends AppController {
     		$this->loadModel('DynamicClients');
     		$e_dc = $this->DynamicClients->find()->where(['DynamicClients.id' => $this->request->getQuery('username')])->first();
     		if($e_dc){
-    			array_push($conditions,["Radaccts.nasidentifier" => $e_dc->nasidentifier]);
+    			array_push($conditions,["nasidentifier" => $e_dc->nasidentifier]);
     		} 	
     	}
     	
     	if(($type == 'permanent')||($type == 'voucher')){
-    		array_push($conditions,["Radaccts.username" => $this->request->getQuery('username')]);
+    		array_push($conditions,["username" => $this->request->getQuery('username')]);
     	}
     	
     	if($type == 'device'){
-    		array_push($conditions,["Radaccts.callingstationid" => $this->request->getQuery('username')]);
+    		array_push($conditions,["callingstationid" => $this->request->getQuery('username')]);
     	}
     	   	
-    	$t_q = $this->{$this->main_model}->find()->where($conditions)->select($this->fields)->first();	
+    	$t_q = $this->{$this->workingModel}->find()->where($conditions)->select($this->fields)->first();	
     		      
-        $total 		= $this->{$this->main_model}->find()->where($conditions)->count();
-        $e_radaccts = $this->{$this->main_model}->find()->where($conditions)->order(['Radaccts.acctstarttime' => 'DESC'])->all();       
+        $total 		= $this->{$this->workingModel}->find()->where($conditions)->count();
+        $e_radaccts = $this->{$this->workingModel}->find()->where($conditions)->order([' acctstarttime' => 'DESC'])->all();       
         $items		= [];
         
         foreach($e_radaccts as $e_ra){  
@@ -408,7 +409,7 @@ class RadacctsController extends AppController {
         if($this->request->getQuery('only_connected')){
             if($this->request->getQuery('only_connected') == 'true'){
                 $only_connected = true;
-                $where[] = $this->main_model.".acctstoptime IS NULL";
+                $where[] = $this->workingModel.".acctstoptime IS NULL";
             }
         }
         
@@ -457,16 +458,13 @@ class RadacctsController extends AppController {
             return;
         }
 
-        $user_id    = $user['id'];
-        
-
-        $fields = [
-            'total_in' => 'sum(Radaccts.acctinputoctets)',
-            'total_out' => 'sum(Radaccts.acctoutputoctets)',
-            'total' => 'sum(Radaccts.acctoutputoctets) + sum(Radaccts.acctinputoctets)',
-        ];
-
-        $query = $this->{$this->main_model}->find();
+        $user_id        = $user['id'];         
+        $only_connected = $this->request->getQuery('only_connected');
+       
+        if($only_connected == 'false'){
+            $this->workingModel = 'RadacctHistories';
+        }                     
+        $query      = $this->{$this->workingModel}->find();
 
         if(!$this->_build_common_query($query, $user)){
         	return;
@@ -498,17 +496,29 @@ class RadacctsController extends AppController {
         $query->limit($limit);
         $query->offset($offset);
         
-        $total  = $query->count();
-        $q_r    = $query->all();
+        $total      = $query->count();
+        $q_r        = $query->all();
+                
+        $totalIn    = 0;
+        $totalOut   = 0;
+        $totalInOut = 0;
+        $activeData = false;
         
-       /* $query_total = $this->{$this->main_model}->find();
-        if(!$this->_build_common_query($query_total, $user,true)){
-        	return;
+        if($this->workingModel == $this->main_model){
+            $activeData = true;
+            $query_total = $this->{$this->workingModel}->find();
+            if(!$this->_build_common_query($query_total, $user,true)){
+        	    return;
+            }       
+            $t_q    = $query_total->select($this->fields)->first();
+            if($t_q){
+                $totalIn    = $t_q->total_in;
+                $totalOut   = $t_q->total_out;
+                $totalInOut = $t_q->total;
+            }
         }
-        $t_q    = $query_total->select($fields)->first();*/
 
         $items  = [];
-
         foreach($q_r as $i){
               
             $i->user_type     = 'unknown';
@@ -542,19 +552,14 @@ class RadacctsController extends AppController {
             'items'         => $items,
             'success'       => true,
             'totalCount'    => $total,
-           // 'totalIn'       => $t_q->total_in,
-           // 'totalOut'      => $t_q->total_out,
-          //  'totalInOut'    => $t_q->total,
-            'totalIn'       => 0,
-            'totalOut'      => 0,
-            'totalInOut'    => 0,
+            'totalIn'       => $totalIn,
+            'totalOut'      => $totalOut,
+            'totalInOut'    => $totalInOut,
             'metaData'      => [
-               // 'totalIn'       => $t_q->total_in,
-              //  'totalOut'      => $t_q->total_out,
-              //  'totalInOut'    => $t_q->total,
-                'totalIn'       => 0,
-                'totalOut'      => 0,
-                'totalInOut'    => 0,
+                'activeData'    => $activeData,
+                'totalIn'       => $totalIn,
+                'totalOut'      => $totalOut,
+                'totalInOut'    => $totalInOut,
                 'totalCount'    => $total
             ]
         ]);
@@ -576,11 +581,11 @@ class RadacctsController extends AppController {
         //FIXME We need to find a creative wat to determine if the Access Provider can delete this accounting data!!!
 	     if(isset($req_d['id'])){
             //$this->_voucher_status_check($req_d['id']);
-            $this->{$this->main_model}->query()->delete()->where(['radacctid' => $req_d['id']])->execute();
+            $this->{$this->workingModel}->query()->delete()->where(['radacctid' => $req_d['id']])->execute();
         }else{                          //Assume multiple item delete
             foreach($req_d as $d){ 
                 //$this->_voucher_status_check($d['id']);
-                $this->{$this->main_model}->query()->delete()->where(['radacctid' => $d['id']])->execute();
+                $this->{$this->workingModel}->query()->delete()->where(['radacctid' => $d['id']])->execute();
             }         
         }
 
@@ -614,7 +619,7 @@ class RadacctsController extends AppController {
 		$data		= [];
 		
 		
-		$e_username = $this->{$this->main_model}->find()->where(['Radaccts.username' => $username,'Radaccts.acctstoptime IS NULL'])->all();
+		$e_username = $this->{$this->workingModel}->find()->where(['username' => $username,'acctstoptime IS NULL'])->all();
 		foreach($e_username as $ent){
 			$data = $this->Kicker->kick($ent,$token); //Sent it to the Kicker (We include the token in order to make API calls if needed
 		}	
@@ -648,7 +653,7 @@ class RadacctsController extends AppController {
 
         foreach(array_keys($req_q) as $key){
             if(preg_match('/^\d+/',$key)){
-                $ent = $this->{$this->main_model}->find()->where(['Radaccts.radacctid' => $key])->first();
+                $ent = $this->{$this->workingModel}->find()->where(['radacctid' => $key])->first();
                 $count++;               
                 if($ent->acctstoptime !== null){
                     $some_session_closed = true;
@@ -687,13 +692,13 @@ class RadacctsController extends AppController {
         $req_q    = $this->request->getQuery();
         foreach(array_keys($req_q) as $key){
             if(preg_match('/^\d+/',$key)){
-                $qr = $this->{$this->main_model}->find()->where(['Radaccts.radacctid' => $key])->first();
+                $qr = $this->{$this->workingModel}->find()->where(['radacctid' => $key])->first();
                 if($qr){
                     if($qr->acctstoptime == null){
                         $now = date('Y-m-d h:i:s');
                         $d['acctstoptime'] = $now;
-						$this->{$this->main_model}->patchEntity($qr,$d);
-                        $this->{$this->main_model}->save($qr);
+						$this->{$this->workingModel}->patchEntity($qr,$d);
+                        $this->{$this->workingModel}->save($qr);
                     }
                 }  
             }
@@ -744,12 +749,12 @@ class RadacctsController extends AppController {
                         'xtype'         => 'button',
                          
                         //To list all
-                        'glyph'         => Configure::read('icnWatch'),
-                        'pressed'       => false,
+                        //'glyph'         => Configure::read('icnWatch'),
+                        //'pressed'       => false,
                         
                         //To list only active
-                        //'glyph'         => Configure::read('icnLight'),
-                        //'pressed'       => true,
+                        'glyph'         => Configure::read('icnLight'),
+                        'pressed'       => true,
                                 
                         'scale'         => $scale,
                         'itemId'        => 'connected',
@@ -837,7 +842,7 @@ class RadacctsController extends AppController {
         if($this->request->getQuery('only_connected')){
             if($this->request->getQuery('only_connected') == 'true'){
                 $only_connected = true;
-                array_push($where,$this->main_model.".acctstoptime IS NULL");
+                array_push($where,$this->workingModel.".acctstoptime IS NULL");
             }
         } 
         
@@ -849,7 +854,7 @@ class RadacctsController extends AppController {
                          
         //===== SORT =====
         //Default values for sort and dir
-        $sort   = 'Radaccts.username';
+        $sort   = 'username';
         $dir    = 'DESC';
         
 
@@ -860,11 +865,11 @@ class RadacctsController extends AppController {
                 $pu_sort = str_replace('pu_','',$pu_sort);
                 $sort = 'PermanentUsers.'.$pu_sort;                   
             }else{                  
-                $sort = $this->main_model.'.'.$this->request->getQuery('sort');
+                $sort = $this->workingModel.'.'.$this->request->getQuery('sort');
             }
             //Here we do a trick if we only list active connections since we can't order by null
-            if(($sort == 'Radaccts.acctstoptime') && ($only_connected)){
-                $sort = 'Radaccts.acctstarttime';
+            if(($sort == 'acctstoptime') && ($only_connected)){
+                $sort = 'acctstarttime';
             }
             $dir  = $this->request->getQuery('dir');
         }
@@ -878,13 +883,13 @@ class RadacctsController extends AppController {
         //======= For a specified username filter *Usually on the edit of user / voucher ======
         if($this->request->getQuery('username')){
             $un = $this->request->getQuery('username');
-            array_push($where, [$this->main_model.".username" => $un]);
+            array_push($where,[ $this->workingModel.".username" => $un]);
         }
 
         //======= For a specified callingstationid filter *Usually on the edit of device ======
         if($this->request->getQuery('callingstationid')){
             $cs_id = $this->request->getQuery('callingstationid');
-            array_push($where, [$this->main_model.".callingstationid" => $cs_id]);
+            array_push($where, [$this->workingModel.".callingstationid" => $cs_id]);
         }
 
         //====== REQUEST FILTER =====
@@ -902,7 +907,7 @@ class RadacctsController extends AppController {
                         $pu_col = str_replace('pu_','',$pu_col);
                         $col = 'PermanentUsers.'.$pu_col;                   
                     }else{                 
-                        $col = $this->main_model.'.'.$f->property;
+                        $col = $this->workingModel.'.'.$f->property;
                     }
                     array_push($where, ["$col LIKE" => '%'.$f->value.'%']);
                 }
@@ -916,7 +921,7 @@ class RadacctsController extends AppController {
                 //Date
                 if(($f->operator == 'gt')||($f->operator == 'lt')||($f->operator == 'eq')){
                     //date we want it in "2013-03-12"
-                    $col = $this->main_model.'.'.$f->property;
+                    $col = $this->workingModel.'.'.$f->property;
                     if($f->operator == 'eq'){
                         array_push($where, ["DATE($col)" => $f->value]);
                     }
@@ -939,7 +944,7 @@ class RadacctsController extends AppController {
                             'table'         => 'radcheck',
                             'alias'         => 'Radcheck',
                             'type'          => 'LEFT',
-                            'conditions'    =>  ['(Radchecks.username = Radaccts.callingstationid) OR (Radchecks.username = Radaccts.username)']
+                            'conditions'    =>  ['(Radchecks.username = callingstationid) OR (Radchecks.username = username)']
                         ]);
 
                         $query->join($joins);
@@ -967,7 +972,7 @@ class RadacctsController extends AppController {
      	$q_realms  = $this->{'Realms'}->find()->where(['Realms.cloud_id' => $req_q['cloud_id']])->all();
       	foreach($q_realms as $r){
       		$found_realm = true;
-          	array_push($realm_clause, [$this->main_model.'.realm' => $r->name]);
+          	array_push($realm_clause, [$this->workingModel.'.realm' => $r->name]);
      	}
      	if($found_realm){
      		array_push($where, ['OR' => $realm_clause]);
@@ -986,7 +991,7 @@ class RadacctsController extends AppController {
     private function _voucher_status_check($id){
 
         //Find the count of this username; if zero check if voucher; if voucher change status to 'new';
-        $q_r = $this->{$this->main_model}->find()->contain(['Radchecks'])->where(['Radaccts.radacctid' => $id])->first();
+        $q_r = $this->{$this->workingModel}->find()->contain(['Radchecks'])->where(['radacctid' => $id])->first();
         if($q_r){
             $user_type = 'unknown';
             $un = $q_r->username;
@@ -1002,7 +1007,7 @@ class RadacctsController extends AppController {
             if($user_type == 'voucher'){
                 $this->loadModel('Vouchers');
 
-                $count = $this->{$this->main_model}->find()->where(['Radaccts.username' => $un])->count();
+                $count = $this->{$this->workingModel}->find()->where(['username' => $un])->count();
                 if($count == 1){
                     $qr = $this->Vouchers->find()->where(['Vouchers.name' => $un])->first();
                     if($qr){

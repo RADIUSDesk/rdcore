@@ -76,8 +76,11 @@ class CommonQueryFlatComponent extends Component {
     		$m_cid = "PrivatePsks.cloud_id";
     	}
     	    	
-
     	$query->where([$m_cid => $cloud_id]);
+    	
+    	//$realmIds = [47,48];
+    	//$query->where(['PermanentUsers.realm_id IN' => $realmIds]);
+   	
     	$query->contain($contain_array);
         if(!is_null($sort)){
             $this->sort_by = $sort;

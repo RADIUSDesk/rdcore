@@ -185,14 +185,14 @@ class PermanentUsersController extends AppController{
                  
         }
              
-        $this->set(array(
+        $this->set([
             'items'         => $items,
             'success'       => true,
             'totalCount'    => $total,
             'metaData'		=> [
             	'total'	=> $total
             ]
-        ));
+        ]);
         $this->viewBuilder()->setOption('serialize', true);
     }
     

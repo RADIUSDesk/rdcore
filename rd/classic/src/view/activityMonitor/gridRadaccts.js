@@ -26,9 +26,7 @@ Ext.define('Rd.view.activityMonitor.gridRadaccts' ,{
                 plugins     : {
                     'ux-progressbarpager': true
                 }
-            },
-           // '->',
-           // {   xtype: 'component', itemId: 'totals',  tpl: i18n('tpl_In_{in}_Out_{out}_Total_{total}'),   style: 'margin-right:5px', cls: 'lblRd' }
+            }
         ];
 
         me.tbar     = Ext.create('Rd.view.components.ajaxToolbar',{'url': me.urlMenu});
