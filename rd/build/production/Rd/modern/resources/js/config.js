@@ -78,7 +78,7 @@ Rd.config = {
     'icnLight'      : 'xf204@FontAwesome',
     'icnNote'       : 'xf08d@FontAwesome',
     'icnKey'        : 'xf084@FontAwesome',
-    'icnRealm'      : 'xf0ac@FontAwesome', //f0ac (globe) old f17d
+    'icnRealm'      : 'xf06c@FontAwesome', //make it a leaf
     'icnNas'        : 'xf1cb@FontAwesome',
     'icnTag'        : 'xf02b@FontAwesome',
     'icnProfile'    : 'xf1b3@FontAwesome',
@@ -205,5 +205,6 @@ Rd.config = {
     'icnPauseO'     : 'xf28c@FontAwesome',
     'icnPlayO'      : 'xf01d@FontAwesome',
     'icnSliders'    : 'xf1de@FontAwesome',
+    'icnEye'        : 'xf06e@FontAwesome'
 }
 
