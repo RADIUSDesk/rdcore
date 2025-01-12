@@ -1,6 +1,6 @@
-Ext.define('Rd.view.clouds.pnlClouds', {
+Ext.define('Rd.view.clouds.pnlCloudsMain', {
     extend	: 'Ext.panel.Panel',
-    alias	: 'widget.pnlClouds',
+    alias	: 'widget.pnlCloudsMain',
     border	: false,
     plain	: true,
     cls     : 'subTab',
@@ -9,12 +9,12 @@ Ext.define('Rd.view.clouds.pnlClouds', {
         'Rd.view.clouds.treeClouds',
         'Rd.view.clouds.treeCloudRealms',
         'Rd.view.clouds.winCloudRealmEdit',
-        'Rd.view.clouds.vcClouds',
+        'Rd.view.clouds.vcCloudsMain',
     ],
     listeners       : {
         activate : 'onPnlActivate' //Trigger a load of the settings (This is only on the initial load)
     },
-    controller  : 'vcClouds',
+    controller  : 'vcCloudsMain',
     items   : [
         {
             xtype   : 'treeClouds',

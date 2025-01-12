@@ -72,9 +72,20 @@ class CloudRealmsController extends AppController {
         $total      = 0;  
 
         if($node === 'root'){
-          
-            $query      = $this->Clouds->find()->order(['Clouds.name' => 'ASC'])->contain(['Users']); 	      	
-            $query->contain(['Users','CloudAdmins.Users']); //Pull in the Users and Cloud Admins for clouds (root level) 	     	       	     	
+        
+            $query  = $this->Clouds->find();
+        
+            //ap group filter on user_id / admin group no filter
+        	if($user['group_name'] == Configure::read('group.ap')){       		
+				$clouds_OR_list	= [['Clouds.user_id' => $user_id]]; //This is the basic search item
+				$q_ca = $this->{'CloudAdmins'}->find()->where(['CloudAdmins.user_id'=>$user_id])->all();//The access provider (ap) might also be admin to other clouds
+				foreach($q_ca as $e_ca){
+					array_push($clouds_OR_list,['Clouds.id' => $e_ca->cloud_id]);
+				}      	
+        		$query  = $this->{'Clouds'}->find();
+    			$query->where(['OR' => $clouds_OR_list]);
+        	}         
+            $query->order(['Clouds.name' => 'ASC'])->contain(['Users','CloudAdmins.Users']); 	//Pull in the Users and Cloud Admins for clouds (root level)       	   	       	     	
              
             $q_r    = $query->all();
             $total  = $query->count();      
@@ -235,7 +246,8 @@ class CloudRealmsController extends AppController {
         if(!$user){   //If not a valid user
             return;
         }
-        
+            
+                   
         $requestData    = $this->request->getData();  
         $role           = $requestData['role'];
         $permissions    = 'admin';
@@ -254,7 +266,45 @@ class CloudRealmsController extends AppController {
 		    $id   = preg_replace('/^Clouds_/', '', $id);
 		}
 		
-		if($level == 'Clouds'){		
+		if($level == 'Clouds'){
+		
+		    //-----------------------------------------------------------------------
+		    //---We have to implement restrictions to Access Providers
+		    
+            if($user['group_name'] == Configure::read('group.ap')){ 
+                
+                $apAllow = false;
+                
+                //--- IF the cloud is owned by the Access Provider we can continiue)
+                $cloud = $this->Clouds->find()->where(['Clouds.id' => $id])->first();
+                if($cloud){
+                    //Owner of the Cloud can change permissions
+                    if($cloud->user_id == $user['id']){
+                        $apAllow = true;
+                        
+                    }else{
+                    
+                        //See what rights the Access Provicer have on this cloud                   
+                        $cloudAdmin = $this->CloudAdmins->find()->where(['CloudAdmins.cloud_id' => $id, 'user_id' => $user['id'],'cloud_wide' => 1])->first();                        
+                        $apAllow    = $this->_checkPermissions($cloudAdmin, $permissions);
+                        if($apAllow){
+                            //Don't allow the user['id'] to 'step down' other Admins on the same cloud
+                            $requestData['admin'] = $this->_sanitizeAdminsPermissions($requestData['admin'], $id,$permissions); 
+                        }
+                                           
+                    }  
+                }                
+                if(!$apAllow){                
+                    $this->set([
+                        'success'   => $apAllow,
+                        'message'   => 'No Rights For This Action'
+                    ]);
+                    $this->viewBuilder()->setOption('serialize', true); 
+                    return;           
+                }                                                     
+            }
+            //----------------------------------------------------------------------------------------------------
+				
 		    $this->{'CloudAdmins'}->deleteAll(['CloudAdmins.cloud_id' => $id, 'permissions' => $permissions,'cloud_wide' => 1]);
 		    if (array_key_exists('admin', $requestData)) {
                 if(!empty($requestData['admin'])){
@@ -267,11 +317,53 @@ class CloudRealmsController extends AppController {
                         }    
                     }
                 }
-            }
-            		    
+            }          		    
 		}
 		
-		if($level == 'Realms'){		
+		if($level == 'Realms'){
+				
+		    // Implement restrictions for Access Providers
+            if ($user['group_name'] === Configure::read('group.ap')) { 
+                $apAllow = false;
+                $c_id = $this->request->getData('c_id');
+
+                // Check if the cloud exists and if the user is the owner
+                $cloud = $this->Clouds->find()->where(['Clouds.id' => $c_id])->first();
+                if ($cloud && $cloud->user_id === $user['id']) {
+                    $apAllow = true;
+                } else {
+                    // Check Access Provider rights at the cloud level
+                    $cloudAdmin = $this->CloudAdmins->find()
+                        ->where(['CloudAdmins.cloud_id' => $c_id, 'user_id' => $user['id'], 'cloud_wide' => 1])
+                        ->first();
+
+                    $apAllow = $this->_checkPermissions($cloudAdmin, $permissions);
+
+                    // If no cloud-level rights, check realm-level rights
+                    if (!$apAllow) {
+                        $realmAdmin = $this->RealmAdmins->find()
+                            ->where(['RealmAdmins.realm_id' => $id, 'user_id' => $user['id']])
+                            ->first();
+
+                        $apAllow = $this->_checkPermissions($realmAdmin, $permissions);
+
+                        if ($apAllow) {
+                            // Sanitize admins to exclude cloud-level admins
+                            $requestData['admin'] = $this->_sanitizeAdmins($requestData['admin'], $c_id);
+                        }
+                    }
+                }
+
+                if (!$apAllow) {
+                    $this->set([
+                        'success' => false,
+                        'message' => 'No Rights For This Action'
+                    ]);
+                    $this->viewBuilder()->setOption('serialize', true);
+                    return;
+                }
+            }
+							
 		    $this->{'RealmAdmins'}->deleteAll(['RealmAdmins.realm_id' => $id, 'permissions' => $permissions]);
 		    if (array_key_exists('admin', $requestData)) {
                 if(!empty($requestData['admin'])){
@@ -392,6 +484,71 @@ class CloudRealmsController extends AppController {
                 ]);
             }
         }
-    }    
+    }
     
+    private function _checkPermissions($adminEntity, $requestedPermission){
+
+        if (!$adminEntity) {
+            return false;
+        }
+
+        switch ($adminEntity->permissions) {
+            case 'admin':
+                return true;
+
+            case 'granular':
+                return in_array($requestedPermission, ['granular', 'view'], true);
+
+            case 'view':
+                return $requestedPermission === 'view';
+
+            default:
+                return false;
+        }
+    }
+    
+    private function _sanitizeAdmins(array $admins, $cloudId){
+
+        $saneAdmins = [];
+
+        foreach ($admins as $admin) {
+            $cloudAdmin = $this->CloudAdmins->find()
+                ->where(['CloudAdmins.cloud_id' => $cloudId, 'user_id' => $admin, 'cloud_wide' => 1])
+                ->first();
+
+            if (!$cloudAdmin) {
+                $saneAdmins[] = $admin;
+            }
+        }
+
+        return $saneAdmins;
+    }
+    
+    private function _sanitizeAdminsPermissions(array $admins, $cloudId, $adminPermission){
+    
+        $saneAdmins = [];
+        foreach ($admins as $admin) {
+            $cloudAdmin = $this->CloudAdmins->find()
+                ->where(['CloudAdmins.cloud_id' => $cloudId, 'user_id' => $admin, 'cloud_wide' => 1])
+                ->first();
+
+            if ($cloudAdmin) {            
+                if($adminPermission !== $cloudAdmin->permissions){
+                    if($adminPermission == 'admin'){ //Admin can step granular and view up
+                        $saneAdmins[] = $admin;
+                    }
+                    if(($adminPermission == 'granular')&&($cloudAdmin->permissions == 'view')){ //Operator can step view up
+                        $saneAdmins[] = $admin;
+                    }
+                }else{
+                    $saneAdmins[] = $admin; //Same level   
+                }
+            }else{
+                $saneAdmins[] = $admin; //New Entry
+            }
+        }
+
+        return $saneAdmins;    
+    }
+        
 }

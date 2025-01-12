@@ -101,8 +101,7 @@ class AccessProvidersController extends AppController{
 		}
 		
 		$user_id 	= $user['id'];		
-		$items 		= [];
-		
+		$items 		= [];		
 		
 		$ap_name    = Configure::read('group.ap');
 		$e_group    = $this->{'Groups'}->find()->where(['Groups.name' => $ap_name])->first();
@@ -111,10 +110,10 @@ class AccessProvidersController extends AppController{
 			$q_r 		= $this->{'Users'}->find()->where(['Users.group_id' => $group_id])->order(['Users.username' => 'ASC'])->all();
 			foreach($q_r as $e){
 			
-				if($e->id !== $user_id){
-					array_push($items, ['id' => $e->id, 'name' => $e->username]);
-				}
-				
+				//-- JAN 2025 we also list the user themself else when they save the list they remove themself from it.
+				//if($e->id !== $user_id){
+                    array_push($items, ['id' => $e->id, 'name' => $e->username]);
+				//}			
 			}	
 		}
 		

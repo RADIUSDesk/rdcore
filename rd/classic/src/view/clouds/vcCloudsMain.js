@@ -1,6 +1,6 @@
-Ext.define('Rd.view.clouds.vcClouds', {
+Ext.define('Rd.view.clouds.vcCloudsMain', {
     extend  : 'Ext.app.ViewController',
-    alias   : 'controller.vcClouds',
+    alias   : 'controller.vcCloudsMain',
     config: {
         urlView  : '/cake4/rd_cake/clouds/view.json',
         urlSave  : '/cake4/rd_cake/clouds/save-cloud.json'

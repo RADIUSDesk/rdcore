@@ -21,8 +21,7 @@ Ext.define('Rd.controller.cClouds', {
                 items   : [           
                     {
                         title   : 'Clouds',
-                        xtype   : 'treeClouds',
-                        xtype   : 'pnlClouds',
+                        xtype   : 'pnlCloudsMain',
                         border  : false,
                         plain   : true,
                         padding : Rd.config.gridSlim,
@@ -39,7 +38,7 @@ Ext.define('Rd.controller.cClouds', {
         return added;
     }, 
     views:  [
-        'clouds.pnlClouds',
+        'clouds.pnlCloudsMain',
         'clouds.treeClouds',         
         'clouds.winCloudEdit',
         'clouds.winCloudAdd',
