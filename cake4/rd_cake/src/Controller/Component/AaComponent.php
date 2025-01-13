@@ -72,6 +72,36 @@ class AaComponent extends Component {
         }
     }
     
+    public function realmCheck($returnNames = false){
+    
+        $controller = $this->getController();
+        $request    = $controller->getRequest();   
+        $token      = $request->getData('token') ?? $request->getQuery('token');
+        $result     = $this->_find_token_owner($token);
+        $user_id    = $result['user']['id'];
+        $cloud_id   = $request->getData('cloud_id') ?? $request->getQuery('cloud_id');
+        $realmsTable= TableRegistry::get('Realms');
+        $realmAdmins= TableRegistry::get('RealmAdmins');
+        $realm_list = [];
+        
+        $realms     = $realmsTable->find()->where(['Realms.cloud_id' => $cloud_id])->all();
+        foreach($realms as $realm){
+            $realmAdmin = $realmAdmins->find()->where(['RealmAdmins.realm_id' => $realm->id, 'RealmAdmins.user_id' => $user_id])->count();
+            if($realmAdmin > 0){
+                if($returnNames){
+                    $realm_list[] = $realm->name;
+                }else{
+                    $realm_list[] = $realm->id;
+                }
+            }
+        }
+        
+        if(count($realm_list) > 0){
+            return $realm_list;
+        }        
+        return false;   
+    }
+    
     //-------------
     
     private function _rights_on_cloud(){

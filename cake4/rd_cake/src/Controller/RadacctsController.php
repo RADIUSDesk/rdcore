@@ -892,15 +892,19 @@ class RadacctsController extends AppController {
            
         //====== CLOUD's Realms FILTER =====  
       	$this->loadModel('Realms'); 	
-      	$realm_clause = [];
+      	$realm_list = [];
       	$found_realm  = false;
      	$q_realms  = $this->{'Realms'}->find()->where(['Realms.cloud_id' => $req_q['cloud_id']])->all();
       	foreach($q_realms as $r){
-      		$found_realm = true;
-          	array_push($realm_clause, [$this->workingModel.'.realm' => $r->name]);
+      		$found_realm  = true;
+          	$realm_list[] = $r->name;
+          	$apRealmList  = $this->Aa->realmCheck(true);
+          	if($apRealmList){
+          	    $realm_list = $apRealmList;
+          	}        	
      	}
-     	if($found_realm){
-     		array_push($where, ['OR' => $realm_clause]);
+     	if($found_realm){ 	
+     		array_push($where, ['realm IN' => $realm_list]);
      	}else{
      		$this->Aa->fail_no_rights("No Realms owned by this cloud"); //If the list of realms for this cloud is empty reject the request
         	return false;

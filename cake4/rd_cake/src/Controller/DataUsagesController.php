@@ -43,6 +43,7 @@ class DataUsagesController extends AppController {
         $this->loadComponent('TimeCalculations');
         $this->loadComponent('Formatter');
         $this->loadComponent('MacVendors');
+        $this->loadComponent('Aa');
     }
 
     public function clientUsageForRealm(){
@@ -1349,6 +1350,12 @@ class DataUsagesController extends AppController {
                     foreach($el_realms as $r){
                         array_push($realm_list,$r->name);
                     }
+                    //Override if there is a reduced list
+                    $apRealmList  = $this->Aa->realmCheck(true);
+                  	if($apRealmList){
+                  	    $realm_list = $apRealmList;
+                  	}
+                    
                     array_push($base_search, ['realm IN' => $realm_list]);                 
                 }
                 

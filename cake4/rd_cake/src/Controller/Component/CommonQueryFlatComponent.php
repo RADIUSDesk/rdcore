@@ -16,6 +16,7 @@ use Cake\ORM\TableRegistry;
 class CommonQueryFlatComponent extends Component {
      
     //Some default configs
+    protected $components 		    = ['Aa'];
     public $available_to_siblings   = true; //Default is true
     public $sort_by                 = 'name';
     
@@ -75,7 +76,21 @@ class CommonQueryFlatComponent extends Component {
     	if($model == 'PrivatePskEntries'){ //With private_psk_entries we use the PrivatePsks as filter
     		$m_cid = "PrivatePsks.cloud_id";
     	}
-    	    	
+    	
+    	if(($model == 'PermanentUsers') ||($model == 'Vouchers') ||($model == 'Devices')){
+        	$realmList = $this->Aa->realmCheck();
+        	if($realmList){
+        	    $query->where([$model.".realm_id IN" => $realmList]);
+        	}
+        }
+        
+        if($model == 'Realms'){
+            $realmList = $this->Aa->realmCheck();
+            if($realmList){
+        	    $query->where(["Realms.id IN" => $realmList]);
+        	}     
+        }
+           	    	
     	$query->where([$m_cid => $cloud_id]);
     	
     	//$realmIds = [47,48];
