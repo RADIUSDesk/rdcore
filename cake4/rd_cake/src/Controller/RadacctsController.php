@@ -904,7 +904,7 @@ class RadacctsController extends AppController {
           	}        	
      	}
      	if($found_realm){ 	
-     		array_push($where, ['realm IN' => $realm_list]);
+     		array_push($where, ["$this->workingModel.realm IN" => $realm_list]);
      	}else{
      		$this->Aa->fail_no_rights("No Realms owned by this cloud"); //If the list of realms for this cloud is empty reject the request
         	return false;
