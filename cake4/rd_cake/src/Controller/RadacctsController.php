@@ -779,7 +779,7 @@ class RadacctsController extends AppController {
                          
         //===== SORT =====
         //Default values for sort and dir
-        $sort   = 'username';
+        $sort   = $this->workingModel.'.username';
         $dir    = 'DESC';
         
 
