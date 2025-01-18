@@ -29,17 +29,14 @@ class UserStatsController extends AppController {
 
     public function index(){
 
-        //$day    = '2019-10-25'; //Temp value
-        $now    = FrozenTime::now(); 
-        $day    = $now->year.'-'.$now->month.'-'.$now->day;  
         $span   = 'daily';      //Can be daily weekly or monthly
-       
-        if($this->request->getQuery('day')){
-            //Format will be: 2013-09-18T00:00:00
-            $pieces = explode('T',$this->request->getQuery('day'));
-            $day = $pieces[0];
-        }
-
+        $day    = $this->request->getQuery('day'); //day will be in format 'd/m/Y'      
+        if($day){
+            $ft_day = FrozenTime::createFromFormat('d/m/Y',$day);     
+        }else{
+            $ft_day = FrozenTime::now();
+        }    
+        
         if(null !== $this->request->getQuery('span')){
             $span = $this->request->getQuery('span');
         }
@@ -48,17 +45,17 @@ class UserStatsController extends AppController {
 
         //Daily Stats
         if($span == 'daily'){
-            $ret_info   = $this->_getDaily($day);
+            $ret_info   = $this->_getDaily($ft_day);
         }
 
         //Weekly
         if($span == 'weekly'){
-           $ret_info    = $this->_getWeekly($day);
+           $ret_info    = $this->_getWeekly($ft_day);
         }
 
         //Monthly
         if($span == 'monthly'){
-            $ret_info    = $this->_getMonthly($day);  
+            $ret_info    = $this->_getMonthly($ft_day);  
         }
         
         if($ret_info){
@@ -84,33 +81,46 @@ class UserStatsController extends AppController {
         $this->viewBuilder()->setOption('serialize', true); 
     }
 
-    private function _getDaily($day){
-
+    private function _getDaily($ft_day){
+    
         $items          = [];
         $total_in       = 0;
         $total_out      = 0;
         $total_in_out   = 0;
+        $start          = 0;
 
-        $start  = 0;
-        $end    = 24;
-        $base_search = $this->_base_search();
-        
+        $base_search    = $this->_base_search();
+        $day_end        = $ft_day->endOfDay();//->i18nFormat('yyyy-MM-dd HH:mm:ss');    
+        $slot_start     = $ft_day->startOfDay(); //Prime it      
         $this->_setTimeZone();
-
-        while($start < $end){
-            $slot_start  = "$day ".sprintf('%02d', $start).':00:00';
-            $slot_end    = "$day ".sprintf('%02d', $start).':59:59';
-       
-            $conditions = $base_search;
-            array_push($conditions, ["CONVERT_TZ(UserStats.timestamp,'+00:00','".$this->time_zone."') >=" =>  $slot_start]);
-            array_push($conditions, ["CONVERT_TZ(UserStats.timestamp,'+00:00','".$this->time_zone."') <="  => $slot_end]);
+        
+        while($slot_start < $day_end){
+        
+            $slot_start_h_m = $slot_start->i18nFormat("E\nHH:mm");
+            $slot_start_txt = $slot_start->i18nFormat('yyyy-MM-dd HH:mm:ss');
+            $slot_end_txt   = $slot_start->addHour(1)->subSecond(1)->i18nFormat('yyyy-MM-dd HH:mm:ss');
+            $where          = $base_search;            
+            $query          = $this->{$this->main_model}->find();
+            $slot_start     = $slot_start->addHour(1); 
+                      
+            $time_start = $query->func()->CONVERT_TZ([
+                "'$slot_start_txt'"     => 'literal',
+                "'$this->time_zone'"    => 'literal',
+                "'+00:00'"              => 'literal',
+            ]);
             
-            //array_push($conditions, ["UserStats.timestamp >=" =>  $slot_start]);
-            //array_push($conditions, ["UserStats.timestamp <="  => $slot_end]);
-
+            $time_end = $query->func()->CONVERT_TZ([
+                "'$slot_end_txt'"       => 'literal',
+                "'$this->time_zone'"    => 'literal',
+                "'+00:00'"              => 'literal',
+            ]);
+                      
+            array_push($where, ["timestamp >=" => $time_start]);
+            array_push($where, ["timestamp <=" => $time_end]);
+            
             $q_r = $this->{$this->main_model}->find()
                 ->select($this->fields)
-                ->where($conditions)
+                ->where($where)
                 ->first();
 
             if($q_r){
@@ -119,43 +129,55 @@ class UserStatsController extends AppController {
 
                 $d_out          = $q_r->data_out;
                 $total_out      = $total_out + $d_out;
+                
                 $total_in_out   = $total_in_out + ($d_in + $d_out);
-                array_push($items, ['id' => $start, 'time_unit' => $start, 'data_in' => $d_in, 'data_out' => $d_out]);
+                
+                array_push($items, ['id' => $start, 'time_unit' => $slot_start_h_m, 'data_in' => $d_in, 'data_out' => $d_out]);
             }
             $start++;
         }
         return(['items' => $items, 'total_in' => $total_in, 'total_out' => $total_out, 'total_in_out' => $total_in_out]);
     }
 
-    private function _getWeekly($day){
+    private function _getWeekly($ft_day){
         $items          = [];
         $total_in       = 0;
         $total_out      = 0;
         $total_in_out   = 0;
-
-         //With weekly we need to find the start of week for the specified date
-        $pieces     = explode('-', $day);
-        $start_day  = date('Y-m-d', strtotime('this week', mktime(0, 0, 0, $pieces[1],$pieces[2], $pieces[0])));
-
-        //Prime the days
-        $slot_start = "$start_day 00:00:00";
-        $slot_end   = "$start_day 23:59:59";
-        $days       = ["Monday", "Tuesday", "Wednesday", "Thusday", "Friday", "Saturday", "Sunday"];
-        $count      = 1;
-
-        $base_search = $this->_base_search();
-        
+        $week_end       = $ft_day->endOfWeek();//->i18nFormat('yyyy-MM-dd HH:mm:ss');    
+        $slot_start     = $ft_day->startOfWeek(); //Prime it 
+        $count          = 0;
+        $base_search    = $this->_base_search();
+        $days           = ["Monday", "Tuesday","Wednesday", "Thusday", "Friday", "Saturday", "Sunday"];
         $this->_setTimeZone();
        
-        foreach($days as $d){
-
-            $conditions = $base_search;
-            array_push($conditions, ["CONVERT_TZ(UserStats.timestamp,'+00:00','".$this->time_zone."') >=" => $slot_start]);
-            array_push($conditions, ["CONVERT_TZ(UserStats.timestamp,'+00:00','".$this->time_zone."') <=" => $slot_end]);
-
+        while($slot_start < $week_end){
+        
+            $slot_start_h_m     = $slot_start->i18nFormat("eee dd MMM");
+            $where              = $base_search; 
+            $slot_start_txt     = $slot_start->i18nFormat('yyyy-MM-dd HH:mm:ss');
+            $slot_end_txt       = $slot_start->addDay(1)->subSecond(1)->i18nFormat('yyyy-MM-dd HH:mm:ss'); //Our interval is one day
+              
+            $query = $this->{$this->main_model}->find();
+            $time_start = $query->func()->CONVERT_TZ([
+                "'$slot_start_txt'"     => 'literal',
+                "'$this->time_zone'"    => 'literal',
+                "'+00:00'"              => 'literal',
+            ]);
+            
+            $time_end = $query->func()->CONVERT_TZ([
+                "'$slot_end_txt'"       => 'literal',
+                "'$this->time_zone'"    => 'literal',
+                "'+00:00'"              => 'literal',
+            ]);
+            
+            $where  = $base_search;   
+            array_push($where, ["timestamp >=" => $time_start]);
+            array_push($where, ["timestamp <=" => $time_end]);
+            
             $q_r = $this->{$this->main_model}->find()
                 ->select($this->fields)
-                ->where($conditions)
+                ->where($where)
                 ->first();
 
             if($q_r){
@@ -165,63 +187,58 @@ class UserStatsController extends AppController {
                 $d_out          = $q_r->data_out;
                 $total_out      = $total_out + $d_out;
                 $total_in_out   = $total_in_out + ($d_in + $d_out);
-                array_push($items, ['id' => $count, 'time_unit' => $d, 'data_in' => $d_in, 'data_out' => $d_out]);
+                array_push($items, ['id' => $count, 'time_unit' => $slot_start_h_m, 'data_in' => $d_in, 'data_out' => $d_out]);
             }
 
             //Get the nex day in the slots (we move one day on)
-            $pieces     = explode('-',$start_day);
-            $start_day  = date('Y-m-d',strtotime('+1 day', mktime(0, 0, 0, $pieces[1],$pieces[2], $pieces[0])));
-            $slot_start = "$start_day 00:00:00";
-            $slot_end   = "$start_day 23:59:59";
+            $slot_start         = $slot_start->addDay(1);
+            
             $count++;
         }
         return(['items' => $items, 'total_in' => $total_in, 'total_out' => $total_out, 'total_in_out' => $total_in_out]);
     }
 
-    private function _getMonthly($day){
+    private function _getMonthly($ft_day){
     
-        $base_search    = $this->_base_search();
-        
-        $this->_setTimeZone();  
-        
         $items          = [];
         $total_in       = 0;
         $total_out      = 0;
-        $total_in_out   = 0;      
-        $pieces         = explode('-', $day); //2018-11-15  
-             
+        $total_in_out   = 0;                
         if(property_exists($this,'data_limit_active')){ 
-             $dt_reset  = FrozenTime::now()
-                    ->year($pieces[0])
-                    ->month($pieces[1])
-                    ->day($this->start_of_month)
-                    ->hour($this->start_hour)
-                    ->minute($this->start_minute);
-        
-            if($pieces[2]< $this->start_of_month){
-                $dt_reset = $dt_reset->subMonth(1);
-            }              
-            $slot_start = $dt_reset;
-            $end_time   = $slot_start; 
-            $slot_end   = $end_time->addHour(24)->subMinute(1); 
+            $slot_start  = $this->_start_of_month($ft_day,$this->start_of_month,$this->start_hour,$this->start_minute);
+            $month_end   = $slot_start->addMonth(1)->subSecond(1);
         }else{
-            $start_time = FrozenTime::now()->year($pieces[0])->month($pieces[1])->startOfMonth(); 
-            $slot_start = $start_time->startOfDay(); 
-            $slot_end   = $start_time->endOfDay();     
+            $month_end      = $ft_day->endOfMonth();//->i18nFormat('yyyy-MM-dd HH:mm:ss');    
+            $slot_start     = $ft_day->startOfMonth(); //Prime it 
         }
         
-        $month_date     = $slot_end->addMonth(1);
+        $base_search    = $this->_base_search();
+        $id_counter     = 1;       
+        $this->_setTimeZone();  
+        
        
-        $id_counter     = 1;
-       
-        while($month_date->timestamp > $slot_end->timestamp){
-            $where = $base_search;
-            array_push($where, ['UserStats.timestamp >=' => $slot_start]);
-           array_push($where, ['UserStats.timestamp <=' => $slot_end]);
-            //FIXME Somehow it does not like this on the monthly one 
-            //Compare with DataUsages
-            //array_push($where, ["CONVERT_TZ(UserStats.timestamp,'+00:00','".$this->time_zone."') >=" => $slot_start]);
-            //array_push($where, ["CONVERT_TZ(UserStats.timestamp,'+00:00','".$this->time_zone."') <=" => $slot_end]);
+        while($slot_start < $month_end){
+        
+            $where              = $base_search;
+            $slot_start_h_m     = $slot_start->i18nFormat("dd MMM");  
+            $slot_start_txt     = $slot_start->i18nFormat('yyyy-MM-dd HH:mm:ss');
+            $slot_end_txt       = $slot_start->addDay(1)->subSecond(1)->i18nFormat('yyyy-MM-dd HH:mm:ss'); //Our interval is one day
+            
+            $query = $this->{$this->main_model}->find();
+            $time_start = $query->func()->CONVERT_TZ([
+                "'$slot_start_txt'"     => 'literal',
+                "'$this->time_zone'"    => 'literal',
+                "'+00:00'"              => 'literal',
+            ]);
+            
+            $time_end = $query->func()->CONVERT_TZ([
+                "'$slot_end_txt'"       => 'literal',
+                "'$this->time_zone'"    => 'literal',
+                "'+00:00'"              => 'literal',
+            ]);
+                       
+            array_push($where, ["timestamp >=" => $time_start]);
+            array_push($where, ["timestamp <=" => $time_end]);
                 
             $q_r = $this->{$this->main_model}->find()->select($this->fields)->where($where)->first();
             if($q_r){   
@@ -230,10 +247,10 @@ class UserStatsController extends AppController {
                 $d_out          = $q_r->data_out;
                 $total_out      = $total_out + $d_out;
                 $total_in_out   = $total_in_out + ($d_in + $d_out);
-                array_push($items, ['id' => $id_counter, 'time_unit' => $slot_start->day, 'data_in' => $d_in, 'data_out' => $d_out]);
+                array_push($items, ['id' => $id_counter, 'time_unit' => $slot_start_h_m, 'data_in' => $d_in, 'data_out' => $d_out]);
             }
-            $slot_start = $slot_start->addHour(24);
-            $slot_end = $slot_end->addHour(24);
+            
+            $slot_start = $slot_start->addDay(1);
             $id_counter ++;
         }    
         //$base_search    = $this->base_search; //FIXME WE DONT NEED THIS

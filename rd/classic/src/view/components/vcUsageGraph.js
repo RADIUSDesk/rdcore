@@ -10,8 +10,8 @@ Ext.define('Rd.view.components.vcUsageGraph', {
         me.getView().down('#chrtUsage').getStore().load();
     },
     onDayChange: function(sel_day){
-        var me 		        = this;  
-        me.getView().down('#chrtUsage').getStore().getProxy().setExtraParam('day',sel_day.getValue());
+        var me      = this; 
+        me.getView().down('#chrtUsage').getStore().getProxy().setExtraParam('day',sel_day.getRawValue());
         me.getView().down('#chrtUsage').getStore().load();
     },
     onCmbTimezonesChange: function(cmb){

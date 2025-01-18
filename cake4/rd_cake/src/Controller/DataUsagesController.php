@@ -1162,6 +1162,7 @@ class DataUsagesController extends AppController {
         $slot_start     = $ft_day->startOfDay(); //Prime it 
         while($slot_start < $day_end){
         
+            $slot_start_h_m     = $slot_start->i18nFormat("E\nHH:mm");
             $slot_start_txt     = $slot_start->i18nFormat('yyyy-MM-dd HH:mm:ss');
             //print_r($slot_start_txt);
             //print_r("\n");
@@ -1194,7 +1195,7 @@ class DataUsagesController extends AppController {
             if($q_r){
                 $d_in   = $q_r->data_in;
                 $d_out  = $q_r->data_out;
-                array_push($items, ['id' => $start, 'time_unit' => $start, 'data_in' => $d_in, 'data_out' => $d_out]);
+                array_push($items, ['id' => $start, 'time_unit' => $slot_start_h_m, 'data_in' => $d_in, 'data_out' => $d_out]);
             }
             $start++;
         }
@@ -1221,7 +1222,7 @@ class DataUsagesController extends AppController {
                     $table = 'UserStats';
                 }
             }
-
+            $slot_start_h_m     = $slot_start->i18nFormat("eee dd MMM");
             $where              = $base_search; 
             $slot_start_txt     = $slot_start->i18nFormat('yyyy-MM-dd HH:mm:ss');
             $slot_end_txt       = $slot_start->addDay(1)->subSecond(1)->i18nFormat('yyyy-MM-dd HH:mm:ss'); //Our interval is one day
@@ -1253,7 +1254,7 @@ class DataUsagesController extends AppController {
                 $d_in   = $q_r->data_in;
                 $d_out  = $q_r->data_out;
                 $d      = $days[$count];
-                array_push($items, ['id' => $count, 'time_unit' => $d, 'data_in' => $d_in, 'data_out' => $d_out]);
+                array_push($items, ['id' => $count, 'time_unit' => $slot_start_h_m, 'data_in' => $d_in, 'data_out' => $d_out]);
             }
             $count++;
         }
@@ -1285,7 +1286,8 @@ class DataUsagesController extends AppController {
                 }
             }
                    
-            $where              = $base_search;  
+            $where              = $base_search;
+            $slot_start_h_m     = $slot_start->i18nFormat("dd MMM");  
             $slot_start_txt     = $slot_start->i18nFormat('yyyy-MM-dd HH:mm:ss');
             $slot_end_txt       = $slot_start->addDay(1)->subSecond(1)->i18nFormat('yyyy-MM-dd HH:mm:ss'); //Our interval is one day
             
@@ -1312,7 +1314,7 @@ class DataUsagesController extends AppController {
             if($q_r){
                 $d_in   = $q_r->data_in;
                 $d_out  = $q_r->data_out;
-                array_push($items, ['id' => $id_counter, 'time_unit' => $slot_start->day, 'data_in' => $d_in, 'data_out' => $d_out]);
+                array_push($items, ['id' => $id_counter, 'time_unit' => $slot_start_h_m, 'data_in' => $d_in, 'data_out' => $d_out]);
             }
             $slot_start = $slot_start->addDay(1);
             $id_counter ++;

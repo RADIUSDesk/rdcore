@@ -40,7 +40,7 @@ Ext.define('Rd.view.components.pnlUsageGraph', {
                         name        : 'day',
                         itemId      : 'day',
                         value       : new Date(),
-                        format      : 'Y-m-d',
+                        format      : "d/m/Y",
                         labelClsExtra: 'lblRdReq',
                         labelAlign  : 'left',
                         labelWidth  : 50,
